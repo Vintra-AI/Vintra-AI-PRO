@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <title>Vintra AI PRO</title>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn&display=swap" rel="stylesheet">
+  <style>
+    
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+      background-color: #f7f7f7;
+      margin: 0;
+      padding: 0;
+      direction: rtl;
+      transition: background 0.3s, color 0.3s;
+    }
+    .dark-mode {
+      font-family: 'Vazirmatn', sans-serif;
+      background-color: #1e1e1e;
+      color: #f1f1f1;
+    }
+    .chat-container {
+      font-family: 'Vazirmatn', sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #ccc;
+      display: flex;
+      flex-direction: column;
+      height: 85vh;
+      overflow: hidden;
+    }
+    .dark-mode .chat-container {
+      font-family: 'Vazirmatn', sans-serif;
+      background: #2a2a2a;
+      box-shadow: 0 0 10px #444;
+    }
+    .header {
+      font-family: 'Vazirmatn', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #2ecc71;
+      padding: 10px 15px;
+      color: white;
+    }
+    .logo {
+      font-family: 'Vazirmatn', sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo img {
+      font-family: 'Vazirmatn', sans-serif;
+      width: 32px;
+      height: 32px;
+    }
+    .controls button {
+      font-family: 'Vazirmatn', sans-serif;
+      margin-left: 10px;
+      padding: 5px 10px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+    }
+    .status-bar {
+      background: #f1f1f1;
+      padding: 6px 12px;
+      font-size: 14px;
+      color: #555;
+      border-top: 1px solid #e5e5e5;
+      border-bottom: 1px solid #e5e5e5;
+    }
+    .dark-mode .status-bar {
+      background: #444;
+      color: #ccc;
+      border-color: #555;
+    }
+    .chat-log {
+      font-family: 'Vazirmatn', sans-serif;
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .message {
+      font-family: 'Vazirmatn', sans-serif;
+      margin-bottom: 15px;
+      padding: 10px 15px;
+      border-radius: 10px;
+      max-width: 80%;
+      line-height: 1.5;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+    .user {
+      font-family: 'Vazirmatn', sans-serif;
+      background: #3498db;
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 0;
+    }
+    .bot {
+      font-family: 'Vazirmatn', sans-serif;
+      background: #ecf0f1;
+      color: #2c3e50;
+      align-self: flex-start;
+      border-bottom-left-radius: 0;
+    }
+    .dark-mode .user {
+      font-family: 'Vazirmatn', sans-serif;
+      background: #2980b9;
+    }
+    .dark-mode .bot {
+      font-family: 'Vazirmatn', sans-serif;
+      background: #444;
+      color: #eee;
+    }
+    .input-area {
+      font-family: 'Vazirmatn', sans-serif;
+      display: flex;
+      border-top: 1px solid #ddd;
+    }
+    input {
+      font-family: 'Vazirmatn', sans-serif;
+      flex: 1;
+      border: none;
+      padding: 15px;
+      font-size: 16px;
+      outline: none;
+      background: transparent;
+      color: inherit;
+    }
+    button.send {
+      font-family: 'Vazirmatn', sans-serif;
+      background: #2ecc71;
+      color: white;
+      font-size: 16px;
+      padding: 0 20px;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="chat-container">
+  <div class="header">
+    <div class="logo">
+      <img src="logo.png" alt="Vintra Logo">
+      <strong>Vintra AI</strong>
+    </div>
+    <div class="controls">
+      <button onclick="toggleDarkMode()">🌙 حالت شب</button>
+      <button onclick="clearChat()">🧼 پاک‌کردن</button>
+      <button onclick="toggleLang()">🌐 زبان</button>
+    </div>
+  </div>
+  <div class="status-bar" id="status">آماده پاسخ‌دهی</div>
+  <div class="chat-log" id="chat-log"></div>
+  <div class="input-area">
+    <input type="text" id="user-input" placeholder="بنویس...">
+    <button class="send" onclick="sendMessage()">ارسال</button>
+  </div>
+</div>
+
+<script>
+let lang = localStorage.getItem("vintraLang") || "fa";
+let isDark = localStorage.getItem("vintraDark") === "true";
+
+/* ====== ۵۰ سؤال/جواب کوتاه کامپیوتری با لینک ======
+   نکته توسعه: برای افزودن مورد جدید، فقط یک شیء جدید مثل نمونه‌ها به آرایه qaList اضافه کنید.
+   فیلدها:
+     q: پرسش/کلیدواژهٔ اصلی (کوتاه)
+     a: پاسخ کوتاه
+     fa: لینک ویکی‌پدیای فارسی (اگر ندارید، خالی بگذارید: "")
+     en: لینک انگلیسی
+     kw: آرایه‌ای از کلیدواژه‌های پیشنهادی برای جست‌وجوی هوشمند
+==================================================== */
+const qaList = [
+  // --- سخت‌افزار / نرم‌افزار (حدود ۳۰ مورد)
+  { q:"سیستم عامل چیست", a:"نرم‌افزاری که منابع سیستم را مدیریت و برنامه‌ها را اجرا می‌کند.", fa:"https://fa.wikipedia.org/wiki/سیستم_عامل", en:"https://en.wikipedia.org/wiki/Operating_system", kw:["سیستم عامل","os","operating system"] },
+  { q:"cpu چیست", a:"واحد پردازش مرکزی که دستورات را تفسیر و اجرا می‌کند.", fa:"https://fa.wikipedia.org/wiki/واحد_پردازش_مرکزی", en:"https://en.wikipedia.org/wiki/Central_processing_unit", kw:["پردازنده","cpu","سی‌پی‌یو"] },
+  { q:"ram چیست", a:"حافظهٔ موقت برای داده‌های در حال پردازش.", fa:"https://fa.wikipedia.org/wiki/حافظه_دسترسی_تصادفی", en:"https://en.wikipedia.org/wiki/Random-access_memory", kw:["رم","ram","حافظه موقت"] },
+  { q:"rom چیست", a:"حافظه فقط‌خواندنی که دادهٔ ثابت نگه می‌دارد.", fa:"https://fa.wikipedia.org/wiki/حافظه_فقط‌خواندنی", en:"https://en.wikipedia.org/wiki/Read-only_memory", kw:["rom","رام","حافظه فقط خواندنی"] },
+  { q:"ssd چیست", a:"درایو حالت‌جامد؛ ذخیره‌ساز سریع بدون قطعهٔ مکانیکی.", fa:"https://fa.wikipedia.org/wiki/درایو_حالت_جامد", en:"https://en.wikipedia.org/wiki/Solid-state_drive", kw:["ssd","اس‌اس‌دی","حالت جامد"] },
+  { q:"هارد دیسک چیست", a:"ذخیره‌ساز مغناطیسی با قطعهٔ مکانیکی چرخان.", fa:"https://fa.wikipedia.org/wiki/دیسک_سخت", en:"https://en.wikipedia.org/wiki/Hard_disk_drive", kw:["hdd","هارد","دیسک سخت"] },
+  { q:"gpu چیست", a:"واحد پردازش گرافیکی برای پردازش موازی گرافیک/محاسبات.", fa:"https://fa.wikipedia.org/wiki/واحد_پردازش_گرافیکی", en:"https://en.wikipedia.org/wiki/Graphics_processing_unit", kw:["gpu","کارت گرافیک","گرافیک"] },
+  { q:"مادربرد چیست", a:"برد اصلی که اجزای سخت‌افزار روی آن متصل می‌شوند.", fa:"https://fa.wikipedia.org/wiki/مادربرد", en:"https://en.wikipedia.org/wiki/Motherboard", kw:["motherboard","برد اصلی"] },
+  { q:"bios چیست", a:"سفت‌افزار آغازین برای راه‌اندازی اولیهٔ سخت‌افزار.", fa:"https://fa.wikipedia.org/wiki/بایوس", en:"https://en.wikipedia.org/wiki/BIOS", kw:["bios","بایوس"] },
+  { q:"uefi چیست", a:"جایگزین مدرن BIOS با قابلیت‌های بیشتر.", fa:"", en:"https://en.wikipedia.org/wiki/UEFI", kw:["uefi","یواف‌آی","فریمور بوت"] },
+  { q:"kernel چیست", a:"هستهٔ سیستم‌عامل که ارتباط نرم‌افزار و سخت‌افزار را مدیریت می‌کند.", fa:"https://fa.wikipedia.org/wiki/هسته_(نرم‌افزار)", en:"https://en.wikipedia.org/wiki/Kernel_(operating_system)", kw:["kernel","هسته سیستم عامل"] },
+  { q:"درایور چیست", a:"نرم‌افزار راه‌انداز برای کارکرد درست سخت‌افزار.", fa:"https://fa.wikipedia.org/wiki/راه‌انداز_وسیله", en:"https://en.wikipedia.org/wiki/Device_driver", kw:["driver","راه انداز","درایور"] },
+  { q:"سیستم فایل چیست", a:"روش سازماندهی و ذخیرهٔ فایل‌ها روی حافظه.", fa:"https://fa.wikipedia.org/wiki/سامانه_فایل", en:"https://en.wikipedia.org/wiki/File_system", kw:["filesystem","fs","ext ntfs"] },
+  { q:"فرآیند چیست", a:"برنامهٔ در حال اجرا با منابع اختصاص‌یافته.", fa:"https://fa.wikipedia.org/wiki/فرآیند_(رایانش)", en:"https://en.wikipedia.org/wiki/Process_(computing)", kw:["process","پروسس","پردازه"] },
+  { q:"رشته چیست", a:"واحد سبک‌وزن اجرا درون یک فرآیند.", fa:"https://fa.wikipedia.org/wiki/رشته_(رایانش)", en:"https://en.wikipedia.org/wiki/Thread_(computing)", kw:["thread","ترد","رشته اجرایی"] },
+  { q:"حافظه مجازی چیست", a:"تکنیکی برای بزرگ‌نمایی منطقی حافظه با دیسک.", fa:"https://fa.wikipedia.org/wiki/حافظه_مجازی", en:"https://en.wikipedia.org/wiki/Virtual_memory", kw:["virtual memory","سویپ","pagefile"] },
+  { q:"کش چیست", a:"حافظهٔ سریع برای نگه‌داری داده‌های پرتکرار.", fa:"https://fa.wikipedia.org/wiki/نهانگاه_(رایانش)", en:"https://en.wikipedia.org/wiki/Cache_(computing)", kw:["cache","نهانگاه","لِول کش"] },
+  { q:"اورکلاک چیست", a:"افزایش فرکانس قطعه بالاتر از مقدار رسمی.", fa:"https://fa.wikipedia.org/wiki/اورکلاک", en:"https://en.wikipedia.org/wiki/Overclocking", kw:["overclock","اورکلاک"] },
+  { q:"۶۴ بیتی چیست", a:"معماری با رجیستر/آدرس ۶۴بیتی برای فضای آدرس بزرگ‌تر.", fa:"https://fa.wikipedia.org/wiki/۶۴-بیتی", en:"https://en.wikipedia.org/wiki/64-bit_computing", kw:["64bit","۶۴ بیتی"] },
+  { q:"۳۲ بیتی چیست", a:"معماری ۳۲بیتی با فضای آدرس کوچک‌تر.", fa:"https://fa.wikipedia.org/wiki/۳۲-بیتی", en:"https://en.wikipedia.org/wiki/32-bit_computing", kw:["32bit","۳۲ بیتی"] },
+  { q:"x86 چیست", a:"خانواده معماری سازگار با اینتل x86.", fa:"https://fa.wikipedia.org/wiki/ایکس۸۶", en:"https://en.wikipedia.org/wiki/X86", kw:["x86","ایکس ۸۶"] },
+  { q:"arm چیست", a:"معماری کم‌مصرف مبتنی بر RISC.", fa:"https://fa.wikipedia.org/wiki/آرم_(معماری)", en:"https://en.wikipedia.org/wiki/ARM_architecture", kw:["arm","آرم"] },
+  { q:"cli چیست", a:"رابط خط فرمان برای اجرای دستورات متنی.", fa:"https://fa.wikipedia.org/wiki/رابط_خط_فرمان", en:"https://en.wikipedia.org/wiki/Command-line_interface", kw:["cli","ترمینال","cmd","شِل"] },
+  { q:"gui چیست", a:"رابط کاربر گرافیکی مبتنی بر پنجره/آیکون/منو.", fa:"https://fa.wikipedia.org/wiki/رابط_کاربر_گرافیکی", en:"https://en.wikipedia.org/wiki/Graphical_user_interface", kw:["gui","واسط گرافیکی"] },
+  { q:"متن باز چیست", a:"مدل توسعه با دسترسی آزاد به کد منبع.", fa:"https://fa.wikipedia.org/wiki/نرم‌افزار_متن‌باز", en:"https://en.wikipedia.org/wiki/Open-source_software", kw:["open source","کد باز"] },
+  { q:"مالکیتی چیست", a:"نرم‌افزار با مجوز بسته و انحصاری.", fa:"https://fa.wikipedia.org/wiki/نرم‌افزار_مالکیتی", en:"https://en.wikipedia.org/wiki/Proprietary_software", kw:["proprietary","بسته"] },
+  { q:"آپدیت چیست", a:"به‌روزرسانی جزئی برای رفع باگ/بهبود.", fa:"", en:"https://en.wikipedia.org/wiki/Patch_(computing)", kw:["update","آپدیت","به‌روزرسانی"] },
+  { q:"آپگرید چیست", a:"ارتقای نسخه یا سخت‌افزار برای توان بیش‌تر.", fa:"", en:"https://en.wikipedia.org/wiki/Software_upgrade", kw:["upgrade","آپگرید","ارتقا"] },
+  { q:"مجازی سازی چیست", a:"ایجاد نسخه‌های مجازی از منابع (ماشین، شبکه...).", fa:"https://fa.wikipedia.org/wiki/مجازی‌سازی", en:"https://en.wikipedia.org/wiki/Virtualization", kw:["virtualization","vm"] },
+  { q:"هایپروایزر چیست", a:"نرم‌افزار/لایه‌ای که ماشین‌های مجازی را مدیریت می‌کند.", fa:"", en:"https://en.wikipedia.org/wiki/Hypervisor", kw:["hypervisor","مدیر مجازی"] },
+  { q:"فریمور چیست", a:"سفت‌افزار؛ نرم‌افزار سطح‌پایین درون سخت‌افزار.", fa:"https://fa.wikipedia.org/wiki/سفت‌افزار", en:"https://en.wikipedia.org/wiki/Firmware", kw:["firmware","سفت افزار"] },
+  { q:"بوت لودر چیست", a:"برنامهٔ آغازگر برای بارکردن سیستم‌عامل.", fa:"https://fa.wikipedia.org/wiki/بارکننده", en:"https://en.wikipedia.org/wiki/Bootloader", kw:["bootloader","گروب","لودر بوت"] },
+  { q:"آنتی ویروس چیست", a:"نرم‌افزاری برای تشخیص و حذف بدافزار.", fa:"https://fa.wikipedia.org/wiki/نرم‌افزار_ضدویروس", en:"https://en.wikipedia.org/wiki/Antivirus_software", kw:["antivirus","ضد ویروس"] },
+  { q:"بکاپ چیست", a:"ایجاد نسخهٔ پشتیبان از داده‌ها برای بازیابی.", fa:"https://fa.wikipedia.org/wiki/پشتیبان‌گیری", en:"https://en.wikipedia.org/wiki/Backup", kw:["backup","پشتیبان گیری"] },
+
+  // --- شبکه/اینترنت/برنامه‌نویسی/امنیت (حدود ۲۰ مورد)
+  { q:"ip چیست", a:"شناسهٔ عددی دستگاه در شبکهٔ مبتنی بر IP.", fa:"https://fa.wikipedia.org/wiki/نشانی_آی‌پی", en:"https://en.wikipedia.org/wiki/IP_address", kw:["ip address","آی پی"] },
+  { q:"mac address چیست", a:"شناسهٔ فیزیکی یکتای کارت شبکه.", fa:"https://fa.wikipedia.org/wiki/نشانی_فیزیکی", en:"https://en.wikipedia.org/wiki/MAC_address", kw:["mac","مک آدرس","آدرس فیزیکی"] },
+  { q:"روتر چیست", a:"دستگاهی که بسته‌ها را بین شبکه‌ها مسیریابی می‌کند.", fa:"https://fa.wikipedia.org/wiki/مسیریاب", en:"https://en.wikipedia.org/wiki/Router", kw:["router","مودم روتر","مسیریاب"] },
+  { q:"سوئیچ چیست", a:"تجهیز لایه دو برای اتصال گره‌ها در شبکه محلی.", fa:"https://fa.wikipedia.org/wiki/سوییچ_شبکه", en:"https://en.wikipedia.org/wiki/Network_switch", kw:["switch","سوئیچ شبکه"] },
+  { q:"dns چیست", a:"سامانه‌ای برای ترجمهٔ نام دامنه به IP.", fa:"https://fa.wikipedia.org/wiki/سامانه_نام_دامنه", en:"https://en.wikipedia.org/wiki/Domain_Name_System", kw:["dns","دی‌ان‌اس"] },
+  { q:"http چیست", a:"پروتکل انتقال ابرمتن برای وب.", fa:"https://fa.wikipedia.org/wiki/اچ‌تی‌تی‌پی", en:"https://en.wikipedia.org/wiki/HTTP", kw:["http"] },
+  { q:"https چیست", a:"همان HTTP با لایهٔ رمزنگاری TLS.", fa:"https://fa.wikipedia.org/wiki/اچ‌تی‌تی‌پی_ایمن", en:"https://en.wikipedia.org/wiki/HTTPS", kw:["https","tls","ssl"] },
+  { q:"url چیست", a:"نشانی یکتای منابع در وب.", fa:"https://fa.wikipedia.org/wiki/نشانی_وب", en:"https://en.wikipedia.org/wiki/URL", kw:["url","لینک","نشانی"] },
+  { q:"کش مرورگر چیست", a:"نهانگاه برای ذخیرهٔ موقت فایل‌های وب جهت سرعت.", fa:"", en:"https://en.wikipedia.org/wiki/Web_cache", kw:["browser cache","کش مرورگر"] },
+  { q:"کوکی چیست", a:"فایل کوچک ذخیرهٔ وضعیت/شناسهٔ کاربر در وب.", fa:"https://fa.wikipedia.org/wiki/کوکی_(رایانه)", en:"https://en.wikipedia.org/wiki/HTTP_cookie", kw:["cookie","کوکی"] },
+  { q:"فایروال چیست", a:"سامانهٔ کنترل ترافیک شبکه بر پایهٔ قوانین.", fa:"https://fa.wikipedia.org/wiki/دیوار_آتش", en:"https://en.wikipedia.org/wiki/Firewall_(computing)", kw:["firewall","دیوار آتش"] },
+  { q:"vpn چیست", a:"شبکهٔ خصوصی مجازی برای تونل‌کردن رمزگذاری‌شده.", fa:"https://fa.wikipedia.org/wiki/شبکه_خصوصی_مجازی", en:"https://en.wikipedia.org/wiki/Virtual_private_network", kw:["vpn","وی‌پی‌ان"] },
+  { q:"ssh چیست", a:"پروتکل امن برای اتصال از راه دور.", fa:"https://fa.wikipedia.org/wiki/شل_امن", en:"https://en.wikipedia.org/wiki/Secure_Shell", kw:["ssh","اس‌اس‌اچ"] },
+  { q:"گیت چیست", a:"سامانهٔ کنترل نسخهٔ توزیع‌شده.", fa:"https://fa.wikipedia.org/wiki/گیت", en:"https://en.wikipedia.org/wiki/Git", kw:["git","ورژن کنترل"] },
+  { q:"الگوریتم چیست", a:"رویه‌ای گام‌به‌گام برای حل مسئله.", fa:"https://fa.wikipedia.org/wiki/الگوریتم", en:"https://en.wikipedia.org/wiki/Algorithm", kw:["algorithm","روال","الگوریتم"] },
+  { q:"کامپایلر چیست", a:"همگردان؛ کد منبع را به باینری ترجمه می‌کند.", fa:"https://fa.wikipedia.org/wiki/همگردان", en:"https://en.wikipedia.org/wiki/Compiler", kw:["compiler","کامپایلر","همگردان"] },
+  { q:"مفسر چیست", a:"برنامه‌ای که کد را خط‌به‌خط اجرا می‌کند.", fa:"https://fa.wikipedia.org/wiki/مفسر_(رایانه)", en:"https://en.wikipedia.org/wiki/Interpreter_(computing)", kw:["interpreter","مفسر"] },
+  { q:"پایگاه داده چیست", a:"مجموعهٔ سازمان‌یافته‌ای از داده‌ها.", fa:"https://fa.wikipedia.org/wiki/پایگاه_داده", en:"https://en.wikipedia.org/wiki/Database", kw:["database","دیتابیس"] },
+  { q:"sql و nosql", a:"SQL ساختاریافته، NoSQL غیررابطه‌ای/انعطاف‌پذیر.", fa:"https://fa.wikipedia.org/wiki/بدون_SQL", en:"https://en.wikipedia.org/wiki/NoSQL", kw:["sql","nosql","دیتابیس"] },
+  { q:"api چیست", a:"واسطی برای تعامل برنامه‌ها با یکدیگر.", fa:"https://fa.wikipedia.org/wiki/واسط_برنامه‌نویسی_کاربردی", en:"https://en.wikipedia.org/wiki/API", kw:["api","رابط برنامه نویسی"] },
+  { q:"json چیست", a:"قالب سبک تبادل داده مبتنی بر متن.", fa:"https://fa.wikipedia.org/wiki/جیسون", en:"https://en.wikipedia.org/wiki/JSON", kw:["json","جیسون"] },
+  { q:"رایانش ابری چیست", a:"ارائهٔ منابع رایانشی ازطریق اینترنت در مقیاس.", fa:"https://fa.wikipedia.org/wiki/رایانش_ابری", en:"https://en.wikipedia.org/wiki/Cloud_computing", kw:["cloud","ابر","cloud computing"] }
+];
+
+/* ====== تنظیمات پاسخ‌های عمومی قبلی (اختیاری) ====== */
+const responses = {
+  fa: {
+    greeting: "سلام! چطور می‌تونم کمکت کنم؟ 😊",
+    bye: "خدانگهدار! 👋",
+    time: () => {
+      const now = new Date();
+      return `الان ساعت ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')} هست. ⏰`;
+    },
+    name: "من هوش مصنوعی وینترا هستم؛ چت‌بات شخصی شما! ساخته‌شده توسط شرکت اندین.",
+    mood: "من همیشه خوبم چون کدم! 😄",
+    unknown: "متوجه نشدم چی گفتی 😕 لطفاً واضح‌تر بگو."
+  },
+  en: {
+    greeting: "Hello! How can I help you? 😊",
+    bye: "Goodbye! 👋",
+    time: () => {
+      const now = new Date();
+      return `It's currently ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}. ⏰`;
+    },
+    name: "I'm Vintra AI, your personal chatbot.",
+    mood: "I'm always good because I'm code! 😄",
+    unknown: "I didn’t understand. Please rephrase. 🤔",
+  }
+};
+
+/* ====== ابزارهای کمکی برای «پیشنهاد هوشمند متن ثابت» ======
+   - نرمال‌سازی حروف فارسی/عربی
+   - تطبیق کلیدواژه‌ها
+   - شباهت ساده بر اساس همپوشانی توکن‌ها
+============================================================ */
+function normalize(str="") {
+  return str
+    .toLowerCase()
+    .replace(/[إأٱآا]/g, "ا")
+    .replace(/ي/g, "ی")
+    .replace(/ك/g, "ک")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenSet(str) {
+  return new Set(normalize(str).split(" ").filter(Boolean));
+}
+
+function overlapScore(a, b) {
+  const A = tokenSet(a), B = tokenSet(b);
+  if (A.size === 0 || B.size === 0) return 0;
+  let inter = 0;
+  for (const t of A) if (B.has(t)) inter++;
+  return inter / Math.max(A.size, B.size);
+}
+
+/* جست‌وجوی هوشمند:
+   1) اگر هر آیتم kw در متن بود → تطبیق قوی
+   2) سپس شباهت توکنی؛ آستانه 0.4
+*/
+function findBestQA(userMsg) {
+  const msgN = normalize(userMsg);
+  let best = null, bestScore = 0;
+
+  for (const item of qaList) {
+    const kws = (item.kw || []).map(normalize);
+    const kwHit = kws.some(k => msgN.includes(k));
+    let score = kwHit ? 1 : overlapScore(msgN, item.q + " " + (item.kw || []).join(" "));
+    if (score > bestScore) {
+      bestScore = score;
+      best = item;
+    }
+  }
+  return bestScore >= 0.4 ? best : null;
+}
+
+/* ساخت پاسخ با متن لینک‌دهی مورد نظر شما */
+function buildAnswer(item) {
+  const hasFa = item.fa && item.fa.trim() !== "";
+  const linkHeader = "برای پاسخ کامل به این لینک مراجعه کنید:(لینک را کپی کرده و جست و جو کنید)";
+  if (hasFa) {
+    return `${item.a}\n${linkHeader}\n🔗 ${item.fa}`;
+  } else {
+    return `${item.a}\n${linkHeader}\n⚠️ لینک نسخه فارسی یافت نشد، لطفاً به لینک نسخه انگلیسی آن مراجعه کنید:\n🔗 ${item.en}`;
+  }
+}
+
+function getBotResponse(message) {
+  const r = responses[lang];
+  const msg = normalize(message);
+
+  // پاسخ‌های عمومی
+  if (msg.includes("سلام") || msg.includes("hi")) return r.greeting;
+  if (msg.includes("خداحافظ") || msg.includes("bye")) return r.bye;
+  if (msg.includes("ساعت") || msg.includes("time")) return r.time();
+  if (msg.includes("اسمت") || msg.includes("name")) return r.name;
+  if (msg.includes("خوبی") || msg.includes("how are you")) return r.mood;
+
+  // پیشنهاد هوشمند: جست‌وجو در لیست ۵۰تایی
+  const match = findBestQA(message);
+  if (match) return buildAnswer(match);
+
+  return r.unknown;
+}
+
+/* ========== UI & State ========== */
+function addMessage(content, type) {
+  const chatLog = document.getElementById("chat-log");
+  const msg = document.createElement("div");
+  msg.className = `message ${type}`;
+  msg.innerText = content;
+  chatLog.appendChild(msg);
+  chatLog.scrollTop = chatLog.scrollHeight;
+
+  const messages = JSON.parse(localStorage.getItem("vintraChat")) || [];
+  messages.push({ content, type });
+  localStorage.setItem("vintraChat", JSON.stringify(messages));
+}
+
+function setStatus(text) {
+  document.getElementById("status").innerText = text;
+}
+
+function sendMessage() {
+  const input = document.getElementById("user-input");
+  const message = input.value.trim();
+  if (message === "") return;
+
+  addMessage("تو: " + message, "user");
+
+  input.value = "";
+  input.focus();
+
+  setStatus("در حال پردازش…");
+  setTimeout(() => typeBotResponse(getBotResponse(message)), 300);
+}
+
+function typeBotResponse(text) {
+  const chatLog = document.getElementById("chat-log");
+  const msg = document.createElement("div");
+  msg.className = "message bot";
+  msg.innerText = "";
+  chatLog.appendChild(msg);
+  chatLog.scrollTop = chatLog.scrollHeight;
+
+  let index = 0;
+  const typing = setInterval(() => {
+    msg.innerText = text.slice(0, index + 1);
+    index++;
+    chatLog.scrollTop = chatLog.scrollHeight;
+    if (index >= text.length) {
+      clearInterval(typing);
+      setStatus(" آماده پاسخ‌دهی");
+
+      const messages = JSON.parse(localStorage.getItem("vintraChat")) || [];
+      messages.push({ content: msg.innerText, type: "bot" });
+      localStorage.setItem("vintraChat", JSON.stringify(messages));
+    }
+  }, 12);
+}
+
+function loadChatHistory() {
+  const messages = JSON.parse(localStorage.getItem("vintraChat")) || [];
+  messages.forEach(msg => addMessage(msg.content, msg.type));
+}
+
+function clearChat() {
+  if (confirm(lang === "fa" ? "مطمئنی که می‌خوای پاک کنی؟" : "Are you sure you want to clear the chat?")) {
+    localStorage.removeItem("vintraChat");
+    document.getElementById("chat-log").innerHTML = "";
+  }
+}
+
+function toggleDarkMode() {
+  document.body.classList.toggle("dark-mode");
+  const isDarkNow = document.body.classList.contains("dark-mode");
+  localStorage.setItem("vintraDark", isDarkNow);
+}
+
+function toggleLang() {
+  lang = lang === "fa" ? "en" : "fa";
+  localStorage.setItem("vintraLang", lang);
+  alert(lang === "fa" ? "زبان روی فارسی تنظیم شد" : "Language set to English");
+}
+
+document.getElementById("user-input").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") sendMessage();
+});
+
+window.onload = () => {
+  if (isDark) document.body.classList.add("dark-mode");
+  loadChatHistory();
+};
+</script>
+
+</body>
+</html>

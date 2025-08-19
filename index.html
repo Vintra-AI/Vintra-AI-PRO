@@ -122,6 +122,38 @@
       display: flex;
       border-top: 1px solid #ddd;
     }
+    .quick-buttons {
+            font-family: 'Vazirmatn', sans-serif;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border-bottom: 1px solid #ddd;
+  flex-wrap: wrap;
+}
+.quick-buttons button {
+  font-family: 'Vazirmatn', sans-serif;
+  background: #f1f1f1;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.quick-buttons button:hover {
+  font-family: 'Vazirmatn', sans-serif;
+  background: #e2e2e2;
+}
+.dark-mode .quick-buttons button {
+  font-family: 'Vazirmatn', sans-serif;
+  background: #444;
+  border-color: #666;
+  color: #fff;
+}
+.dark-mode .quick-buttons button:hover {
+  font-family: 'Vazirmatn', sans-serif;
+  background: #555;
+}
+
     input {
       font-family: 'Vazirmatn', sans-serif;
       flex: 1;
@@ -141,7 +173,26 @@
       border: none;
       cursor: pointer;
     }
-  </style>
+  
+  /* پیشنهاد زنده */
+  #suggestions {
+    background: #fff;
+    border-bottom: 1px solid #ccc;
+    max-height: 120px;
+    overflow-y: auto;
+    display: none;
+    position: absolute;
+    bottom: 50px;
+    right: 0;
+    left: 0;
+    z-index: 5;
+  }
+  #suggestions div {
+    padding: 6px 10px;
+    cursor: pointer;
+  }
+  #suggestions div:hover { background: #eee; }
+</style>
 </head>
 <body>
 
@@ -159,9 +210,19 @@
   </div>
   <div class="status-bar" id="status">آماده پاسخ‌دهی</div>
   <div class="chat-log" id="chat-log"></div>
-  <div class="input-area">
-    <input type="text" id="user-input" placeholder=" سوالت را بنویس... (اگر جواب غلط بود کلمه اش را به صورت انگلیسی بنویسید)">
+  <div class="quick-buttons">
+      <button onclick="setQuick('سلام')">سلام</button>
+      <button onclick="setQuick('خوبی')">خوبی</button>
+      <button onclick="setQuick('ساعت چنده')">ساعت چنده</button>
+     <button onclick="setQuick('خداحافظ')">خداحافظ</button>
+    <button onclick="setQuick('اسمت چیه')">اسمت چیه</button>
+      </div>
+  <div class="input-area" style="position:relative;">
+    <div id="suggestions"></div>
+    <input type="text" id="user-input" placeholder=" سوالت را بنویس...">
     <button class="send" onclick="sendMessage()">ارسال</button>
+    
+
   </div>
 </div>
 
@@ -169,17 +230,8 @@
 let lang = localStorage.getItem("vintraLang") || "fa";
 let isDark = localStorage.getItem("vintraDark") === "true";
 
-/* ====== ۵۰ سؤال/جواب کوتاه کامپیوتری با لینک ======
-   نکته توسعه: برای افزودن مورد جدید، فقط یک شیء جدید مثل نمونه‌ها به آرایه qaList اضافه کنید.
-   فیلدها:
-     q: پرسش/کلیدواژهٔ اصلی (کوتاه)
-     a: پاسخ کوتاه
-     fa: لینک ویکی‌پدیای فارسی (اگر ندارید، خالی بگذارید: "")
-     en: لینک انگلیسی
-     kw: آرایه‌ای از کلیدواژه‌های پیشنهادی برای جست‌وجوی هوشمند
-==================================================== */
+
 const qaList = [
-  // --- سخت‌افزار / نرم‌افزار (حدود ۳۰ مورد)
   { q:"سیستم عامل چیست", a:"نرم‌افزاری که منابع سیستم را مدیریت و برنامه‌ها را اجرا می‌کند.", fa:"https://fa.wikipedia.org/wiki/سیستم_عامل", en:"https://en.wikipedia.org/wiki/Operating_system", kw:["سیستم عامل","os","operating system"] },
   { q:"cpu چیست", a:"واحد پردازش مرکزی که دستورات را تفسیر و اجرا می‌کند.", fa:"https://fa.wikipedia.org/wiki/واحد_پردازش_مرکزی", en:"https://en.wikipedia.org/wiki/Central_processing_unit", kw:["پردازنده","cpu","سی‌پی‌یو"] },
   { q:"ram چیست", a:"حافظهٔ موقت برای داده‌های در حال پردازش.", fa:"https://fa.wikipedia.org/wiki/حافظه_دسترسی_تصادفی", en:"https://en.wikipedia.org/wiki/Random-access_memory", kw:["رم","ram","حافظه موقت"] },
@@ -205,7 +257,7 @@ const qaList = [
   { q:"چیست cli", a:"رابط خط فرمان برای اجرای دستورات متنی.", fa:"https://fa.wikipedia.org/wiki/رابط_خط_فرمان", en:"https://en.wikipedia.org/wiki/Command-line_interface", kw:["cli","ترمینال","cmd","شِل"] },
   { q:"چیست gui", a:"رابط کاربر گرافیکی مبتنی بر پنجره/آیکون/منو.", fa:"https://fa.wikipedia.org/wiki/رابط_کاربر_گرافیکی", en:"https://en.wikipedia.org/wiki/Graphical_user_interface", kw:["gui","واسط گرافیکی"] },
   { q:"متن باز چیست", a:"مدل توسعه با دسترسی آزاد به کد منبع.", fa:"https://fa.wikipedia.org/wiki/نرم‌افزار_متن‌باز", en:"https://en.wikipedia.org/wiki/Open-source_software", kw:["open source","کد باز"] },
-  { q:"مالکیتی چیست", a:"نرم‌افزار با مجوز بسته و انحصاری.", fa:"https://fa.wikipedia.org/wiki/نرم‌افزار_مالکیتی", en:"https://en.wikipedia.org/wiki/Proprietary_software", kw:["proprietary","بسته"] },
+  { q:"مالکیتی چیست", a:"نرم‌افزار با مجوز بسته و انحصاری.", fa:"https://fa.wikipedia.org/wiki/نرم‌افزار_مالکیتی", en:"https://en.wikipedia.org/wiki/Proprietary_software", kw:["proprietary","بسته", "مالکیتی"] },
   { q:"آپدیت چیست", a:"به‌روزرسانی جزئی برای رفع باگ/بهبود.", fa:"", en:"https://en.wikipedia.org/wiki/Patch_(computing)", kw:["update","آپدیت","به‌روزرسانی"] },
   { q:"آپگرید چیست", a:"ارتقای نسخه یا سخت‌افزار برای توان بیش‌تر.", fa:"", en:"https://en.wikipedia.org/wiki/Software_upgrade", kw:["upgrade","آپگرید","ارتقا"] },
   { q:"مجازی سازی چیست", a:"ایجاد نسخه‌های مجازی از منابع (ماشین، شبکه...).", fa:"https://fa.wikipedia.org/wiki/مجازی‌سازی", en:"https://en.wikipedia.org/wiki/Virtualization", kw:["virtualization","vm"] },
@@ -215,7 +267,7 @@ const qaList = [
   { q:"آنتی ویروس چیست", a:"نرم‌افزاری برای تشخیص و حذف بدافزار.", fa:"https://fa.wikipedia.org/wiki/نرم‌افزار_ضدویروس", en:"https://en.wikipedia.org/wiki/Antivirus_software", kw:["antivirus","ضد ویروس"] },
   { q:"بکاپ چیست", a:"ایجاد نسخهٔ پشتیبان از داده‌ها برای بازیابی.", fa:"https://fa.wikipedia.org/wiki/پشتیبان‌گیری", en:"https://en.wikipedia.org/wiki/Backup", kw:["backup","پشتیبان گیری"] },
 
-  // --- شبکه/اینترنت/برنامه‌نویسی/امنیت (حدود ۲۰ مورد)
+  
   { q:"چیست ip", a:"شناسهٔ عددی دستگاه در شبکهٔ مبتنی بر IP.", fa:"https://fa.wikipedia.org/wiki/نشانی_آی‌پی", en:"https://en.wikipedia.org/wiki/IP_address", kw:["ip address","آی پی", "ip"] },
   { q:"چیست mac address", a:"شناسهٔ فیزیکی یکتای کارت شبکه.", fa:"https://fa.wikipedia.org/wiki/نشانی_فیزیکی", en:"https://en.wikipedia.org/wiki/MAC_address", kw:["mac","مک آدرس","آدرس فیزیکی"] },
   { q:"روتر چیست", a:"دستگاهی که بسته‌ها را بین شبکه‌ها مسیریابی می‌کند.", fa:"https://fa.wikipedia.org/wiki/مسیریاب", en:"https://en.wikipedia.org/wiki/Router", kw:["router","مودم روتر","مسیریاب"] },
@@ -237,10 +289,9 @@ const qaList = [
   { q:"sql و nosql", a:"SQL ساختاریافته، NoSQL غیررابطه‌ای/انعطاف‌پذیر.", fa:"https://fa.wikipedia.org/wiki/بدون_SQL", en:"https://en.wikipedia.org/wiki/NoSQL", kw:["sql","nosql","دیتابیس"] },
   { q:"چیست api", a:"واسطی برای تعامل برنامه‌ها با یکدیگر.", fa:"https://fa.wikipedia.org/wiki/واسط_برنامه‌نویسی_کاربردی", en:"https://en.wikipedia.org/wiki/API", kw:["api","رابط برنامه نویسی"] },
   { q:"چیست json", a:"قالب سبک تبادل داده مبتنی بر متن.", fa:"https://fa.wikipedia.org/wiki/جیسون", en:"https://en.wikipedia.org/wiki/JSON", kw:["json","جیسون"] },
-  { q:"رایانش ابری چیست", a:"ارائهٔ منابع رایانشی ازطریق اینترنت در مقیاس.", fa:"https://fa.wikipedia.org/wiki/رایانش_ابری", en:"https://en.wikipedia.org/wiki/Cloud_computing", kw:["cloud","ابر","cloud computing"] }
+  { q:"رایانش ابری چیست", a:"ارائهٔ منابع رایانشی ازطریق اینترنت در مقیاس.", fa:"https://fa.wikipedia.org/wiki/رایانش_ابری", en:"https://en.wikipedia.org/wiki/Cloud_computing", kw:["cloud","ابر","cloud computing"] },
 ];
 
-/* ====== تنظیمات پاسخ‌های عمومی قبلی (اختیاری) ====== */
 const responses = {
   fa: {
     greeting: "سلام! چطور می‌تونم کمکت کنم؟ 😊",
@@ -265,12 +316,11 @@ const responses = {
     unknown: "I didn’t understand. Please rephrase. 🤔",
   }
 };
+function setQuick(text) {
+  document.getElementById("user-input").value = text;
+  document.getElementById("suggestions").style.display = "none";
+}
 
-/* ====== ابزارهای کمکی برای «پیشنهاد هوشمند متن ثابت» ======
-   - نرمال‌سازی حروف فارسی/عربی
-   - تطبیق کلیدواژه‌ها
-   - شباهت ساده بر اساس همپوشانی توکن‌ها
-============================================================ */
 function normalize(str="") {
   return str
     .toLowerCase()
@@ -294,27 +344,20 @@ function overlapScore(a, b) {
   return inter / Math.max(A.size, B.size);
 }
 
-/* جست‌وجوی هوشمند:
-   1) اگر هر آیتم kw در متن بود → تطبیق قوی
-   2) سپس شباهت توکنی؛ آستانه 0.4
-*/
-function findBestQA(userMsg) {
-  const msgN = normalize(userMsg);
-  let best = null, bestScore = 0;
 
+function findBestQA(userMsg) {
+  const msgN = cleanQuestion(userMsg);
+  let best = null, bestScore = 0;
   for (const item of qaList) {
     const kws = (item.kw || []).map(normalize);
-    const kwHit = kws.some(k => msgN.includes(k));
-    let score = kwHit ? 1 : overlapScore(msgN, item.q + " " + (item.kw || []).join(" "));
-    if (score > bestScore) {
-      bestScore = score;
-      best = item;
-    }
+    if (kws.some(k => msgN.includes(k))) return item;
+    const score = overlapScore(msgN, item.q + " " + (item.kw || []).join(" "));
+    if (score > bestScore) { bestScore = score; best = item; }
   }
-  return bestScore >= 0.4 ? best : null;
+  return bestScore >= 0.6 ? best : null;
 }
 
-/* ساخت پاسخ با متن لینک‌دهی مورد نظر شما */
+
 function buildAnswer(item) {
   const hasFa = item.fa && item.fa.trim() !== "";
   const linkHeader = "برای پاسخ کامل به این لینک مراجعه کنید:(لینک را کپی کرده و جست و جو کنید)";
@@ -431,6 +474,32 @@ window.onload = () => {
   if (isDark) document.body.classList.add("dark-mode");
   loadChatHistory();
 };
+
+/* پیشنهاد زنده */
+function showSuggestions(text) {
+  const s = document.getElementById("suggestions");
+  s.innerHTML = "";
+  const q = cleanQuestion(text);
+  if (q.length < 2) { s.style.display = "none"; return; }
+  const matches = qaList.filter(i => normalize(i.q).includes(q));
+  matches.slice(0,5).forEach(m => {
+    const d = document.createElement("div");
+    d.innerText = m.q;
+    d.onclick = () => {
+      document.getElementById("user-input").value = m.q;
+      s.style.display = "none";
+    };
+    s.appendChild(d);
+  });
+  s.style.display = matches.length ? "block" : "none";
+}
+document.getElementById("user-input").addEventListener("input", e => {
+  showSuggestions(e.target.value);
+});
+function cleanQuestion(msg) {
+  return normalize(String(msg).replace(/چیست/g, "").trim());
+}
+
 </script>
 
 </body>
